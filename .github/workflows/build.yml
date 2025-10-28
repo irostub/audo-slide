@@ -2,9 +2,8 @@ name: Build AutoSlide Executables
 
 on:
   push:
-    tags:
-      - 'v*'  # v1.0.0, v1.0.1 등의 태그가 푸시될 때 실행
-  workflow_dispatch:  # 수동 실행 가능
+    branches:
+      - '*'
 
 jobs:
   build:
