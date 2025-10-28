@@ -1,0 +1,84 @@
+name: Build AutoSlide Executables
+
+on:
+  push:
+    tags:
+      - 'v*'  # v1.0.0, v1.0.1 등의 태그가 푸시될 때 실행
+  workflow_dispatch:  # 수동 실행 가능
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        python-version: ['3.11']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Build with PyInstaller
+      run: |
+        pyinstaller autoslide.spec
+
+    - name: Get artifact name
+      id: get_name
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          echo "artifact_name=AutoSlide-Windows.exe" >> $GITHUB_OUTPUT
+          echo "file_path=dist/AutoSlide.exe" >> $GITHUB_OUTPUT
+        elif [ "$RUNNER_OS" == "macOS" ]; then
+          echo "artifact_name=AutoSlide-macOS" >> $GITHUB_OUTPUT
+          echo "file_path=dist/AutoSlide" >> $GITHUB_OUTPUT
+        else
+          echo "artifact_name=AutoSlide-Linux" >> $GITHUB_OUTPUT
+          echo "file_path=dist/AutoSlide" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.get_name.outputs.artifact_name }}
+        path: ${{ steps.get_name.outputs.file_path }}
+        retention-days: 30
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Display structure
+      run: ls -R artifacts
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          artifacts/AutoSlide-Windows.exe/AutoSlide.exe
+          artifacts/AutoSlide-macOS/AutoSlide
+          artifacts/AutoSlide-Linux/AutoSlide
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
