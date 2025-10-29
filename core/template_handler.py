@@ -64,7 +64,8 @@ def fill_template_with_row(tmpl_slide, row, image_suffixes=IMAGE_EXTENSIONS):
         if k_norm:  # 빈 키는 무시
             row_dict[k_norm] = row[k]
 
-    print(f"  엑셀 키: {list(row_dict.keys())}")
+    print(f"  엑셀 원본 컬럼: {list(row.index)}")
+    print(f"  엑셀 정규화 키: {list(row_dict.keys())}")
 
     # 2. 템플릿의 모든 Shape 수집 (그룹 내부 Shape 포함)
     shapes_to_process = []
@@ -93,6 +94,10 @@ def fill_template_with_row(tmpl_slide, row, image_suffixes=IMAGE_EXTENSIONS):
             # Shape의 텍스트를 키로 사용
             key_raw = get_text_content(shape)
             key = normalize_key(key_raw)
+
+            # 디버깅: 원본과 정규화된 텍스트 비교
+            if key_raw and key_raw != key:
+                print(f"    [정규화] '{key_raw}' -> '{key}'")
 
             # 엑셀 데이터와 매칭되지 않으면 스킵
             if not key:
