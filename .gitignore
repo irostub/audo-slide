@@ -53,3 +53,7 @@ $RECYCLE.BIN/
 output.pptx
 ~$*.pptx
 ~$*.xlsx
+
+# 템플릿 및 데이터 파일 (개인 데이터 포함)
+template.pptx
+data.xlsx
