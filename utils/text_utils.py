@@ -35,29 +35,32 @@ def normalize_key(s: str) -> str:
     """
     if s is None:
         return ''
-    
+
     s = str(s)
-    
+
     # 보이지 않는 특수 공백 문자 제거
     # \u200b: Zero Width Space
     # \ufeff: Byte Order Mark (BOM)
     # \u2060: Word Joiner
     for ch in ['\u200b', '\ufeff', '\u2060']:
         s = s.replace(ch, '')
-    
+
     # Non-breaking space를 일반 공백으로 변환
     s = s.replace('\xa0', ' ')
-    
-    # 모든 형태의 줄바꿈을 공백으로 변환
-    s = s.replace('\r\n', ' ').replace('\n', ' ').replace('\r', ' ')
-    
+
+    # 탭을 일반 공백으로 변환
+    s = s.replace('\t', ' ')
+
+    # 모든 형태의 줄바꿈 제거 (공백 대체 안함)
+    s = s.replace('\r\n', '').replace('\n', '').replace('\r', '')
+
     # 앞뒤 공백 제거
     s = s.strip()
-    
+
     # 연속된 공백을 하나로 축약
     while '  ' in s:
         s = s.replace('  ', ' ')
-    
+
     return s
 
 
@@ -109,9 +112,9 @@ def set_text_preserve_style(shape, value):
     """
     if not getattr(shape, 'has_text_frame', False):
         return
-    
+
     tf = shape.text_frame
-    
+
     # None, NaN 등을 빈 문자열로 처리
     text = '' if value is None or (isinstance(value, float) and pd.isna(value)) else str(value)
 
@@ -123,37 +126,51 @@ def set_text_preserve_style(shape, value):
             # 첫 번째 Run의 스타일을 유지하며 텍스트만 교체
             para.runs[0].text = text
 
-            # 나머지 Run 제거 (역순으로 제거해야 인덱스 꼬임 방지)
-            try:
-                for i in range(len(para.runs) - 1, 0, -1):
-                    run = para.runs[i]
+            # 나머지 Run 처리 (제거 시도, 실패 시 빈 텍스트로)
+            for i in range(len(para.runs) - 1, 0, -1):
+                run = para.runs[i]
+                try:
                     # _element 또는 element 속성 확인
                     if hasattr(run, '_element'):
                         r_elem = run._element
                     elif hasattr(run, 'element'):
                         r_elem = run.element
                     else:
+                        # element를 찾을 수 없으면 텍스트만 비움
+                        run.text = ''
                         continue
                     r_elem.getparent().remove(r_elem)
-            except Exception:
-                # Run 제거 실패 시 무시 (텍스트는 이미 설정됨)
-                pass
+                except Exception:
+                    # Run 제거 실패 시 텍스트를 빈 문자열로 설정
+                    try:
+                        run.text = ''
+                    except Exception:
+                        pass
         else:
             # Run이 없으면 새로 생성
             run = para.add_run()
             run.text = text
 
-        # 추가 Paragraph 제거 (첫 번째만 남김)
-        try:
-            for i in range(len(tf.paragraphs) - 1, 0, -1):
-                p = tf.paragraphs[i]
+        # 추가 Paragraph 처리 (제거 시도, 실패 시 빈 텍스트로)
+        for i in range(len(tf.paragraphs) - 1, 0, -1):
+            p = tf.paragraphs[i]
+            try:
                 if hasattr(p, '_element'):
                     p_elem = p._element
                 elif hasattr(p, 'element'):
                     p_elem = p.element
                 else:
+                    # element를 찾을 수 없으면 텍스트만 비움
+                    if p.runs:
+                        for r in p.runs:
+                            r.text = ''
                     continue
                 p_elem.getparent().remove(p_elem)
-        except Exception:
-            # Paragraph 제거 실패 시 무시
-            pass
+            except Exception:
+                # Paragraph 제거 실패 시 모든 Run을 빈 문자열로 설정
+                try:
+                    if p.runs:
+                        for r in p.runs:
+                            r.text = ''
+                except Exception:
+                    pass
