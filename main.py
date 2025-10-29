@@ -1,4 +1,5 @@
 """
+2025-10-29
 AutoSlide - 엑셀 기반 PowerPoint 자동 생성 도구
 
 엑셀 데이터와 PowerPoint 템플릿을 결합하여
