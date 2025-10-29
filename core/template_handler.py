@@ -109,14 +109,16 @@ def fill_template_with_row(tmpl_slide, row, image_suffixes=IMAGE_EXTENSIONS):
 
             val = row_dict[key]
 
-            # None 또는 NaN 처리 - 빈 문자열로 채움
-            if val is None or (isinstance(val, float) and pd.isna(val)):
+            # None 또는 빈 값 처리
+            # dtype=str로 읽었기 때문에 'nan' 문자열로 올 수 있음
+            if val is None or (isinstance(val, str) and val.lower() == 'nan'):
                 print(f"    매칭: '{key}' -> (빈 값)")
                 if getattr(shape, 'has_text_frame', False):
                     set_text_preserve_style(shape, '')
                 matched_count += 1
                 continue
 
+            # 이미 문자열로 읽혔으므로 str() 변환 필요 없음
             sval = str(val).strip()
 
             # 빈 문자열 처리

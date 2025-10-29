@@ -82,7 +82,9 @@ def build_ppt_from_excel(template_path, excel_path, out_path, sheet_name=0):
     print(f"엑셀 로드 중: {excel_path}")
     
     prs = Presentation(template_path)
-    df = pd.read_excel(excel_path, sheet_name=sheet_name)
+    # 엑셀 데이터를 모두 문자열로 읽어서 숫자가 float 타입으로 변환되는 것을 방지
+    # 이렇게 하면 1.0이 "1"로, 2.0이 "2"로 읽힘
+    df = pd.read_excel(excel_path, sheet_name=sheet_name, dtype=str)
     
     # 2. 데이터 유효성 검증
     if df.empty:

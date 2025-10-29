@@ -115,8 +115,13 @@ def set_text_preserve_style(shape, value):
 
     tf = shape.text_frame
 
-    # None, NaN 등을 빈 문자열로 처리
-    text = '' if value is None or (isinstance(value, float) and pd.isna(value)) else str(value)
+    # None 또는 빈 값 처리
+    # dtype=str로 읽었기 때문에 'nan' 문자열로 올 수 있음
+    if value is None or (isinstance(value, str) and value.lower() == 'nan'):
+        text = ''
+    else:
+        # 이미 문자열로 들어오므로 그대로 사용
+        text = str(value)
 
     # Paragraph/Run 구조 유지하면서 텍스트만 교체
     if tf.paragraphs:
@@ -124,7 +129,19 @@ def set_text_preserve_style(shape, value):
 
         if para.runs:
             # 첫 번째 Run의 스타일을 유지하며 텍스트만 교체
-            para.runs[0].text = text
+            # XML 레벨에서 텍스트를 문자열로 강제 설정
+            run = para.runs[0]
+            run.text = text
+            
+            # XML 레벨에서 텍스트 타입 확인 및 강제 설정
+            try:
+                if hasattr(run, '_element') or hasattr(run, 'element'):
+                    r_elem = run._element if hasattr(run, '_element') else run.element
+                    # <a:t> 태그 내의 텍스트를 명시적으로 문자열로 설정
+                    for t_elem in r_elem.findall('.//{http://schemas.openxmlformats.org/drawingml/2006/main}t'):
+                        t_elem.text = text
+            except Exception:
+                pass
 
             # 나머지 Run 처리 (제거 시도, 실패 시 빈 텍스트로)
             for i in range(len(para.runs) - 1, 0, -1):
